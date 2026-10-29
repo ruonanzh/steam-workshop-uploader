@@ -390,13 +390,12 @@ fn create_staging_dir(content_path: impl AsRef<Path>) -> eyre::Result<tempfile::
     Ok(tempfile::TempDir::new()?)
 }
 
-/// Attempts to hardlink files in `content_dir` to temporary staging directory while ignoring files matched in the glob.
-/// Falls back to a standard copy if hardlinking fails (e.g. crossing filesystem boundaries).
-pub fn stage_filtered_content(
+fn build_walk_builder(
     content_dir: impl AsRef<Path>,
+    max_depth: Option<usize>,
     globs: Option<&[impl AsRef<str>]>,
     ignore_files: Option<&[impl AsRef<Path>]>,
-) -> eyre::Result<tempfile::TempDir> {
+) -> eyre::Result<ignore::WalkBuilder> {
     let mut overrides = ignore::overrides::OverrideBuilder::new(content_dir.as_ref());
     overrides.add(&format!("!{}", WORKSHOP_METADATA_FILENAME))?;
 
@@ -409,11 +408,27 @@ pub fn stage_filtered_content(
     let mut walk_builder = ignore::WalkBuilder::new(content_dir.as_ref());
     walk_builder.overrides(overrides.build()?);
 
+    if let Some(max_depth) = max_depth {
+        walk_builder.max_depth(Some(max_depth));
+    }
+
     if let Some(ignore_files) = ignore_files {
         for ignore_file in ignore_files {
             walk_builder.add_ignore(ignore_file.as_ref());
         }
     }
+
+    Ok(walk_builder)
+}
+
+/// Attempts to hardlink files in `content_dir` to temporary staging directory while ignoring files matched in the glob.
+/// Falls back to a standard copy if hardlinking fails (e.g. crossing filesystem boundaries).
+pub fn stage_filtered_content(
+    content_dir: impl AsRef<Path>,
+    globs: Option<&[impl AsRef<str>]>,
+    ignore_files: Option<&[impl AsRef<Path>]>,
+) -> eyre::Result<tempfile::TempDir> {
+    let walk_builder = build_walk_builder(content_dir.as_ref(), None, globs, ignore_files)?;
 
     let staged_dir = create_staging_dir(content_dir.as_ref())?;
     for entry in walk_builder
@@ -443,6 +458,135 @@ pub fn stage_filtered_content(
     }
 
     Ok(staged_dir)
+}
+
+/// Lists workshop content files according to ignore rules.
+///
+/// If `ignored` is false, returns relative paths of included files that would be uploaded.
+/// If `ignored` is true, returns relative paths of ignored files and directories, pruning ignored directories at the
+/// root with a trailing slash without descending into them.
+pub fn list_content_files(
+    content_dir: impl AsRef<Path>,
+    ignored: bool,
+    max_depth: Option<usize>,
+    globs: Option<&[impl AsRef<str>]>,
+    ignore_files: Option<&[impl AsRef<Path>]>,
+) -> eyre::Result<Vec<String>> {
+    fn collect_ignored_recursive(
+        root: &Path,
+        current_dir: &Path,
+        current_depth: usize,
+        max_depth: Option<usize>,
+        matcher: &mut ignore::IncrementalIgnore,
+        results: &mut Vec<String>,
+    ) -> eyre::Result<()> {
+        if let Some(max) = max_depth
+            && current_depth > max
+        {
+            return Ok(());
+        }
+
+        let read_dir = match fs_err::read_dir(current_dir) {
+            Ok(read_dir) => read_dir,
+            Err(err) => {
+                warn!(%err, dir = %current_dir.display(), "Failed to read directory");
+                return Ok(());
+            }
+        };
+
+        let mut entries = Vec::new();
+        for entry in read_dir {
+            match entry {
+                Ok(entry) => entries.push(entry),
+                Err(err) => warn!(%err, "Failed to read directory entry"),
+            }
+        }
+
+        entries.sort_by_key(|it| it.file_name());
+
+        for entry in entries {
+            let path = entry.path();
+            let file_type = match entry.file_type() {
+                Ok(it) => it,
+                Err(err) => {
+                    warn!(%err, path = %path.display(), "Failed to get file type");
+                    continue;
+                }
+            };
+            let rel_path = path.relative_to(root)?;
+            let rel_path_str = rel_path.as_str();
+
+            if file_type.is_dir() {
+                let is_ignored = matcher.matched(rel_path.as_str(), true).is_ignore();
+                if is_ignored {
+                    results.push(format!("{rel_path_str}/"));
+                } else {
+                    if let Some(max) = max_depth
+                        && current_depth >= max
+                    {
+                        continue;
+                    }
+                    collect_ignored_recursive(
+                        root,
+                        &path,
+                        current_depth + 1,
+                        max_depth,
+                        matcher,
+                        results,
+                    )?;
+                }
+            } else if file_type.is_file() || file_type.is_symlink() {
+                let is_ignored = matcher.matched(rel_path.as_str(), false).is_ignore();
+                if is_ignored {
+                    results.push(rel_path_str.to_owned());
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    let content_dir = content_dir.as_ref();
+    if !content_dir.is_dir() {
+        bail!("Path is not a directory: {}", content_dir.display());
+    }
+
+    let walk_builder = build_walk_builder(content_dir, max_depth, globs, ignore_files)?;
+
+    if !ignored {
+        let mut files = Vec::new();
+        for entry in walk_builder
+            .build()
+            .filter_map(|it| it.inspect_err(|err| warn!("{err}")).ok())
+            .filter(|it| it.depth() != 0)
+        {
+            if let Some(file_type) = entry.file_type()
+                && file_type.is_file()
+            {
+                let relative = entry.path().relative_to(content_dir)?;
+                files.push(relative.as_str().to_owned());
+            }
+        }
+        files.sort();
+        Ok(files)
+    } else {
+        let mut matchers = walk_builder.build_matchers();
+        let matcher = matchers
+            .get_mut(0)
+            .context("Failed to build ignore matcher")?;
+
+        let mut results = Vec::new();
+        collect_ignored_recursive(
+            content_dir,
+            content_dir,
+            1,
+            max_depth,
+            matcher,
+            &mut results,
+        )?;
+        results.sort();
+        Ok(results)
+    }
 }
 
 pub fn create_item_with_metadata_file(

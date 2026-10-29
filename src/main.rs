@@ -933,6 +933,18 @@ fn run() -> eyre::Result<()> {
                 metadata_path.display()
             );
         }
+        cli::Command::Files(command) => {
+            let content_path = command.path.unwrap_or_else(|| PathBuf::from("."));
+            let files = workshop::list_content_files(
+                &content_path,
+                command.ignored,
+                command.max_depth,
+                Some(&command.globs),
+                Some(&command.ignore_files),
+            )?;
+
+            println!("{}", files.join("\n"));
+        }
     }
 
     Ok(())

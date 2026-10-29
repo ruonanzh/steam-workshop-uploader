@@ -48,6 +48,16 @@ You can then update the item using the following command:
 workshop update --content 'path/to/workshop/content/folder'
 ```
 
+To inspect which files will be uploaded or excluded by ignore rules:
+
+```shell
+# List files that will be uploaded
+workshop files 'path/to/workshop/content/folder'
+
+# List ignored files and directories
+workshop files --ignored 'path/to/workshop/content/folder'
+```
+
 To see all available options, use the `--help` flag.
 
 ## Settings

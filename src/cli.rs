@@ -21,6 +21,7 @@ pub enum Command {
     Create(CreateCommand),
     Update(UpdateCommand),
     Init(InitCommand),
+    Files(FilesCommand),
 }
 
 #[derive(Debug, Clone, clap::Args)]
@@ -141,6 +142,40 @@ pub struct InitCommand {
     pub tags: Vec<Tag>,
     #[arg(short, long)]
     pub force: bool,
+}
+
+/// List workshop content files matching or excluded by ignore rules.
+#[derive(Debug, Clone, Parser)]
+#[command()]
+pub struct FilesCommand {
+    /// Directory to inspect (defaults to current directory).
+    #[arg(
+        value_name = "PATH",
+        value_parser = clap::value_parser!(ClioPath)
+            .exists()
+            .is_dir()
+            .map(|it| it.to_path_buf())
+    )]
+    pub path: Option<PathBuf>,
+    /// Show ignored/excluded files and directories instead of included files.
+    #[arg(short, long)]
+    pub ignored: bool,
+    /// Maximum depth to traverse.
+    #[arg(short = 'd', long = "max-depth")]
+    pub max_depth: Option<usize>,
+    /// Additional glob patterns to match against.
+    #[arg(short, long = "glob", value_name = "GLOB")]
+    pub globs: Vec<String>,
+    /// Additional ignore files to read rules from.
+    #[arg(
+        long = "ignore-file",
+        value_name = "FILE",
+        value_parser = clap::value_parser!(ClioPath)
+            .exists()
+            .is_file()
+            .map(|it| it.to_path_buf())
+    )]
+    pub ignore_files: Vec<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum, Default, strum::Display)]
