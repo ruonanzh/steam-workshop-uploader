@@ -2,6 +2,7 @@ mod cli;
 mod config;
 mod defines;
 pub mod markdown;
+mod media;
 mod text;
 mod workshop;
 
@@ -820,6 +821,8 @@ fn run() -> eyre::Result<()> {
         }
         cli::Command::GetText(command) => text::get_text(command)?,
         cli::Command::SetText(command) => text::set_text(command)?,
+        cli::Command::GetPreviews(command) => media::get_previews(command)?,
+        cli::Command::AddPreview(command) => media::add_preview(command)?,
         cli::Command::Init(command) => {
             let content_path = command.content_path.map(Ok).unwrap_or_else(|| {
                 if cli.no_prompt {

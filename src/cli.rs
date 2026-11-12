@@ -24,6 +24,28 @@ pub enum Command {
     Files(FilesCommand),
     GetText(GetTextCommand),
     SetText(SetTextCommand),
+    GetPreviews(GetPreviewsCommand),
+    AddPreview(AddPreviewCommand),
+}
+
+/// List the primary preview and additional gallery previews as JSON.
+#[derive(Debug, Clone, clap::Args)]
+pub struct GetPreviewsCommand {
+    #[arg(long)]
+    pub app_id: u32,
+    #[arg(long)]
+    pub item_id: u64,
+}
+
+/// Append one gallery image without changing the primary preview or item text.
+#[derive(Debug, Clone, clap::Args)]
+pub struct AddPreviewCommand {
+    #[arg(long)]
+    pub app_id: u32,
+    #[arg(long)]
+    pub item_id: u64,
+    #[arg(long, value_name = "FILE")]
+    pub file: PathBuf,
 }
 
 /// Read one language's Workshop title and full description as JSON.
@@ -57,6 +79,42 @@ pub struct SetTextCommand {
 #[cfg(test)]
 mod localization_tests {
     use super::*;
+
+    #[test]
+    fn gallery_append_requires_a_file() {
+        assert!(
+            Cli::try_parse_from([
+                "workshop",
+                "add-preview",
+                "--app-id",
+                "3167020",
+                "--item-id",
+                "3838485408",
+            ])
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn gallery_append_has_no_language_or_visibility_switch() {
+        for extra in ["--language", "--visibility"] {
+            assert!(
+                Cli::try_parse_from([
+                    "workshop",
+                    "add-preview",
+                    "--app-id",
+                    "3167020",
+                    "--item-id",
+                    "3838485408",
+                    "--file",
+                    "screenshot.jpg",
+                    extra,
+                    "english",
+                ])
+                .is_err()
+            );
+        }
+    }
 
     #[test]
     fn set_text_requires_an_explicit_language() {
