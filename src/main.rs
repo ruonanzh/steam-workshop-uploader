@@ -2,6 +2,7 @@ mod cli;
 mod config;
 mod defines;
 pub mod markdown;
+mod text;
 mod workshop;
 
 use std::{io::IsTerminal, path::PathBuf, str::FromStr, sync::mpsc};
@@ -646,6 +647,8 @@ fn run() -> eyre::Result<()> {
             let resolved_language = command.workshop_item.language.unwrap_or_else(|| {
                 resolve_language(&client, Some(&workshop_item_cfg), &config.inner)
             });
+            // Query and update must target the same language, including defaults.
+            command.workshop_item.language = Some(resolved_language);
 
             let (tx, rx) = mpsc::channel();
             client
@@ -815,6 +818,8 @@ fn run() -> eyre::Result<()> {
                 open_workshop_page(file_id.0)?;
             }
         }
+        cli::Command::GetText(command) => text::get_text(command)?,
+        cli::Command::SetText(command) => text::set_text(command)?,
         cli::Command::Init(command) => {
             let content_path = command.content_path.map(Ok).unwrap_or_else(|| {
                 if cli.no_prompt {

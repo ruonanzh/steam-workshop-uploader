@@ -22,6 +22,102 @@ pub enum Command {
     Update(UpdateCommand),
     Init(InitCommand),
     Files(FilesCommand),
+    GetText(GetTextCommand),
+    SetText(SetTextCommand),
+}
+
+/// Read one language's Workshop title and full description as JSON.
+#[derive(Debug, Clone, clap::Args)]
+pub struct GetTextCommand {
+    #[arg(long)]
+    pub app_id: u32,
+    #[arg(long)]
+    pub item_id: u64,
+    /// Steam API code, for example english, schinese or japanese.
+    #[arg(long)]
+    pub language: Language,
+}
+
+/// Update only one language's title and description; preserve other item fields.
+#[derive(Debug, Clone, clap::Args)]
+pub struct SetTextCommand {
+    #[arg(long)]
+    pub app_id: u32,
+    #[arg(long)]
+    pub item_id: u64,
+    /// Required to prevent writing translated text to the English fallback.
+    #[arg(long)]
+    pub language: Language,
+    #[arg(long)]
+    pub title: String,
+    #[arg(long, value_name = "FILE")]
+    pub description_file: PathBuf,
+}
+
+#[cfg(test)]
+mod localization_tests {
+    use super::*;
+
+    #[test]
+    fn set_text_requires_an_explicit_language() {
+        assert!(
+            Cli::try_parse_from([
+                "workshop",
+                "set-text",
+                "--app-id",
+                "3167020",
+                "--item-id",
+                "3838485408",
+                "--title",
+                "Cat",
+                "--description-file",
+                "description.txt",
+            ])
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn set_text_cannot_change_global_visibility() {
+        assert!(
+            Cli::try_parse_from([
+                "workshop",
+                "set-text",
+                "--app-id",
+                "3167020",
+                "--item-id",
+                "3838485408",
+                "--language",
+                "schinese",
+                "--title",
+                "猫猫主角替换",
+                "--description-file",
+                "description.txt",
+                "--visibility",
+                "public",
+            ])
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn get_text_accepts_steam_language_codes() {
+        for language in ["english", "schinese", "japanese"] {
+            assert!(
+                Cli::try_parse_from([
+                    "workshop",
+                    "get-text",
+                    "--app-id",
+                    "3167020",
+                    "--item-id",
+                    "3838485408",
+                    "--language",
+                    language,
+                ])
+                .is_ok()
+            );
+        }
+    }
 }
 
 #[derive(Debug, Clone, clap::Args)]

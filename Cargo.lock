@@ -1545,6 +1545,7 @@ dependencies = [
  "quit",
  "relative-path",
  "serde",
+ "serde_json",
  "serde_with",
  "steamworks",
  "steamworks-sys",
