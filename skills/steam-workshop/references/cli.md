@@ -1,34 +1,34 @@
-# CLI 操作参考
+# CLI reference
 
-下文 `<CLI>` 代表技能目录中当前平台可执行文件的绝对路径，`<CONTENT>` 是当前 Mod 内准备好的发布目录。参数值使用宿主 shell 的正确引用；含空格或中文的路径必须引用。
+`<CLI>` means the absolute path to the executable for the current platform inside the installed skill directory. `<CONTENT>` is the prepared publishing directory inside the current Mod. Quote paths containing spaces or non-ASCII characters according to the host shell.
 
-使用宿主已有的命令执行工具运行。Pi Agent 读取技能后可直接通过 `bash` 调用原生程序；其他 Agent 使用其等效执行工具。不要把 `<CLI>` 当作已注册的工具名，也不要假定存在名为 SKILL_DIR 的环境变量；根据本次加载的 SKILL.md 绝对路径确定实际位置。
+Use the host's existing command-execution tool. Pi can invoke the native executable through bash; another Agent can use its equivalent tool. `<CLI>` is not a registered tool name. There is no assumed SKILL_DIR environment variable: derive the real location from the loaded SKILL.md path.
 
-macOS/Bash：`"<技能绝对目录>/bin/macos-universal/workshop" --help`
+macOS/Bash: `"<ABSOLUTE_SKILL_DIR>/bin/macos-universal/workshop" --help`
 
-Windows/PowerShell：`& "<技能绝对目录>/bin/windows-x64/workshop.exe" --help`
+Windows/PowerShell: `& "<ABSOLUTE_SKILL_DIR>/bin/windows-x64/workshop.exe" --help`
 
-所有修改前先确定 App ID、目标条目和玩家的本次意图。使用 `--no-prompt` 禁用终端交互。运行时无需 Rust、Node 或 Python；构建源码才需要开发工具。
+Before mutations, establish the App ID, item, and player's intent. Use `--no-prompt` to disable terminal interaction. Runtime use needs no Rust, Node, or Python installation; those are development tools only.
 
 ```text
 <CLI> files <CONTENT>
-<CLI> --no-prompt create --app-id <APP_ID> --content <CONTENT> --language english --title "Title" --description-file <绝对路径/en.txt> --visibility private --preview <封面绝对路径>
-<CLI> --no-prompt update --content <CONTENT> --language english --visibility public --description-file <绝对路径/en.txt>
-<CLI> --no-prompt update --content <CONTENT> --language english --no-content-update --preview <封面绝对路径>
+<CLI> --no-prompt create --app-id <APP_ID> --content <CONTENT> --language english --title "Title" --description-file <ABSOLUTE_PATH/en.txt> --visibility private --preview <ABSOLUTE_COVER_PATH>
+<CLI> --no-prompt update --content <CONTENT> --language english --visibility public --description-file <ABSOLUTE_PATH/en.txt>
+<CLI> --no-prompt update --content <CONTENT> --language english --no-content-update --preview <ABSOLUTE_COVER_PATH>
 <CLI> get-text --app-id <APP_ID> --item-id <ITEM_ID> --language english
-<CLI> set-text --app-id <APP_ID> --item-id <ITEM_ID> --language japanese --title "日本語タイトル" --description-file <绝对路径/ja.txt>
+<CLI> set-text --app-id <APP_ID> --item-id <ITEM_ID> --language japanese --title "Localized title" --description-file <ABSOLUTE_PATH/ja.txt>
 <CLI> get-previews --app-id <APP_ID> --item-id <ITEM_ID>
-<CLI> add-preview --app-id <APP_ID> --item-id <ITEM_ID> --file <截图绝对路径>
+<CLI> add-preview --app-id <APP_ID> --item-id <ITEM_ID> --file <ABSOLUTE_SCREENSHOT_PATH>
 ```
 
-create 将返回 ID 写入 `<CONTENT>/workshop.toml`。update 从该文件读取 app_id/item_id。已有条目但尚无文件时，可用纯本地命令创建记录：
+create saves its returned ID in `<CONTENT>/workshop.toml`. update reads app_id and item_id from that file. To establish a local record for an existing item:
 
 ```text
 <CLI> --no-prompt init --app-id <APP_ID> --item-id <ITEM_ID> --content <CONTENT>
 ```
 
-init 不证明条目归属。先通过 get-previews/get-text 查询并核对目标。`workshop.toml` 自动排除出上传文件，不要把发布记录放进技能安装目录。
+init is local and does not prove item ownership. Query the intended target with get-previews/get-text first. workshop.toml is automatically excluded from uploaded content. Keep publishing records out of the installed skill folder.
 
-get-text、set-text、get-previews、add-preview 在 stdout 输出 JSON；Steam 原生日志可能出现在 stderr。通用 create/update 仍为人类可读输出和文件记录，不能假设所有命令都输出 JSON。以成功返回、远端回读和记录三者判断结果。
+get-text, set-text, get-previews, and add-preview emit JSON on stdout; native Steam logs may appear on stderr. Generic create/update commands still use human-readable output and file records. Do not assume every command returns JSON. Check process results, remote readback, and records.
 
-add-preview 成功会返回新画廊及 verified；超时或 verified=false 时先 get-previews 核对。即使本地等待失败，Steam 也可能已完成上传。
+A successful add-preview reports the new gallery and verified. After a timeout or verified=false, query get-previews before retrying; Steam may have completed the upload even if the local wait failed.

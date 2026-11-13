@@ -1,23 +1,23 @@
-# 图片规范
+# Image rules
 
-三种资源分别管理：封面是列表识别图；画廊是详情页顶部多图；描述插图属于各语言富文本。不要把一张新截图自动覆盖所有位置。
+Treat the primary cover, gallery, and inline description images as separate resources. Do not automatically apply a new screenshot to every placement.
 
-| 类型 | 建议制作规格 | 验收重点 |
+| Resource | Recommended production size | Verification |
 | --- | --- | --- |
-| 主封面 | 默认 1024×1024，简单图案可用 512×512 | 缩到约 215×215 仍可识别；主体突出、少小字、Logo 留边 |
-| 画廊截图 | 新制作优先 1920×1080；必要时 1280×720；已有截图保留原比例 | 详情页约 16:9 大图及 116×65 缩略图；不拉伸、不随意裁掉人物或 UI |
-| 正文插图 | 建议宽 1260 px，高度随内容；清晰的现有素材不必放大 | 在约 630 px 阅读宽度下检查文字；长说明拆成多图 |
+| Primary cover | Default 1024 x 1024; 512 x 512 can suit simple artwork | Recognizable at about 215 x 215; prominent subject, little small text, margins around logos |
+| Gallery screenshot | Prefer 1920 x 1080 for new material; use 1280 x 720 when useful; preserve existing screenshot proportions | Check the roughly 16:9 player and 116 x 65 thumbnails; do not stretch or casually crop characters or UI |
+| Inline image | Suggested width 1260 px, content-dependent height; do not upscale adequate existing material | Check text at about 630 px display width; split long explanations into several images |
 
-这些像素尺寸是项目建议，不是 Valve 硬性要求。2026-11-13 桌面实测：Duckov 最近发布列表约 215×215，画廊请求约 637×358，参考条目正文图片 CSS 最大宽度 630。响应式布局和 Steam 改版会改变显示区域。256×256 不是 Steam 的通用上传要求；游戏本地 preview.png 若另有要求，应与 Workshop 宣传图分别处理。
+These dimensions are project recommendations, not Valve requirements. Desktop measurements on 2026-11-13 found roughly 215 x 215 Duckov listing cards, a 637 x 358 gallery request, and a 630 px CSS maximum for images in the reference item's description. Responsive layouts and Steam updates can change display sizes. 256 x 256 is not a universal Steam upload requirement; treat game-local preview.png requirements separately.
 
-SDK 预览上传使用 JPG、PNG、GIF，文档要求小于 1 MB。导出目标建议不超过 900,000 字节，避免边界；这是余量，不是官方 900 KB 限制。正文网络图片若先经该 SDK 托管，也受同一上传限制。不要把商店页图片规格、网页批量上传限额当作此 CLI 的限制。
+The SDK preview upload documentation requires images smaller than 1 MB and suggests JPG, PNG, and GIF. Aim for at most 900,000 bytes to leave margin; this is not an official 900 KB limit. Inline network images also inherit this restriction if uploaded through that SDK route. Do not substitute Steam store asset rules or browser batch-upload limits for this CLI's limits.
 
-保留原图。优先用确定性工具做格式转换、压缩、缩放与 Logo 合成，保持实机截图忠实；创作性修改按玩家要求进行并区分宣传图与截图。照片优先 JPEG，平面图和清晰 UI 可选 PNG。GIF 须检查体积及必要帧，不为凑分辨率放大模糊素材。
+Preserve originals. Prefer deterministic tools for format conversion, compression, resizing, and logo overlays so gameplay screenshots remain faithful. Make creative edits only as requested and distinguish promotional artwork from screenshots. Prefer JPEG for photos and PNG for flat artwork or clear UI. Keep GIF frames necessary for the demonstration and within the upload budget. Do not enlarge blurry material just to reach a suggested dimension.
 
-- 封面：`--preview` 写主封面；不等于画廊第 0 张。
-- 画廊：`get-previews` 读取，`add-preview` 追加。相同文件名会被拒绝，避免重复追加。当前版本不提供画廊替换、删除或排序命令；需要时如实说明，不能编造参数或靠重复添加替代。
-- 正文：使用 `[img]https://...[/img]` 引用可访问原图 URL。可复用已上传的画廊或封面原图 URL；不使用磁盘路径，不使用带 imw/imh 参数的低清缩略图 URL。
+- Cover: `--preview` writes the primary preview. It is not gallery index 0.
+- Gallery: read with `get-previews`, append with `add-preview`. Duplicate filenames are rejected. This CLI currently has no gallery replacement, removal, or ordering command; do not invent flags or substitute repeated appends.
+- Inline: use `[img]https://...[/img]` with an accessible original-image URL. An uploaded gallery or cover URL can be reused. Do not use disk paths or low-resolution thumbnail URLs containing imw/imh transformations.
 
-上传后检查资源各自的位置，并在网页确认图片实际加载。当前 SDK 未找到主封面或画廊按语言保存的接口；语言正文可分别引用不同图片。Steam 商店页的“本地化图片组”是另一套功能。
+After uploading, check each placement and actual browser image loading. No per-language primary-cover or gallery field has been found in the current SDK. Localized descriptions can reference different images. Steam store localized image groups are a separate feature.
 
-来源：[预览上传 API](https://partner.steamgames.com/doc/api/ISteamUGC#AddItemPreviewFile)、[上传错误与大小限制](https://partner.steamgames.com/doc/api/ISteamUGC#SubmitItemUpdateResult_t)、[商店素材功能的区别](https://partner.steamgames.com/doc/store/page/assets)。
+Sources: [preview API](https://partner.steamgames.com/doc/api/ISteamUGC#AddItemPreviewFile), [upload errors and size limits](https://partner.steamgames.com/doc/api/ISteamUGC#SubmitItemUpdateResult_t), [separate store asset management](https://partner.steamgames.com/doc/store/page/assets).

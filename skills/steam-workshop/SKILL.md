@@ -1,36 +1,36 @@
 ---
 name: steam-workshop
-description: 将当前 Mod 上传到 Steam Workshop，或更新已有条目的文件、封面、截图画廊及各语言标题和描述。适用于发布已经制作并验证的 Mod。
+description: Publish an already verified Mod to Steam Workshop, or update its files, cover, gallery, and localized titles and descriptions.
 ---
 
-# Steam Workshop 发布
+# Steam Workshop publishing
 
-使用本目录随附的 Rust CLI，复用本机已登录的 Steam。玩家须持有相应游戏和发布权限；无需 API Key，也不向 Agent 提供密码或 Steam Guard 验证码。连接失败时让玩家在官方 Steam 客户端检查登录，再按返回错误处理。
+Use the native Rust CLI bundled with this skill and the player's existing local Steam session. Steam must be running and signed in, and the account must have the required game license and publishing permissions. Do not request passwords, Steam Guard codes, or API keys. If authentication fails, direct the player to the official Steam client and handle the actual CLI error.
 
-## 宿主与执行方式
+## Host and execution
 
-这是采用标准 `SKILL.md` 格式的通用 Agent 技能。由宿主根据 name 和 description 发现并加载。Pi 项目可将整个目录安装到 `<游戏仓库>/.pi/skills/steam-workshop/`，再由宿主刷新技能发现或重开会话。
+This is a standard, host-neutral SKILL.md skill. Hosts discover it through its name and description. In Pi projects, install the complete folder at `<game-repository>/.pi/skills/steam-workshop/`, then refresh skill discovery or start a new session. Repository development agents should read the [installation guide](references/installation.md).
 
-Agent 使用宿主的文件读取工具加载本文件和参考文件，再通过已有的命令执行工具调用 CLI。Pi 中通常使用 `read` 和 `bash`；Windows 宿主提供 PowerShell 时，也可按参考中的 PowerShell 语法执行。无需额外的技能专用工具注册。
+Read this file and the relevant references with the host's file-reading tool, then invoke the CLI through its command-execution tool. Pi normally provides `read` and `bash`; use the PowerShell examples when the Windows host provides PowerShell. No skill-specific tool registration is required.
 
-当前游戏仓库由会话工作区确定，不是本技能的安装目录。CLI 和参考文件相对技能目录定位；`mod-repo.json` 和 `your_mods/` 相对当前游戏仓库定位。
+The current game repository comes from the session workspace, not the skill installation directory. Resolve CLI and reference paths relative to this SKILL.md. Resolve `mod-repo.json` and `your_mods/` relative to the current game repository.
 
-## 工作空间与工具
+## Workspace and runtime
 
-- 从当前游戏仓库根目录的 `mod-repo.json` 读取 `game.steamAppId`。缺失时说明缺项，不猜测 App ID。
-- 当前 Mod 的工作空间是当前会话对应的 `your_mods/<folder name>/`。没有明确当前 Mod 时先定位或询问，不跨到另一个 Mod。
-- Mod 的编译和游戏内验证由已有制作流程负责。上传任务直接使用已验证的成果。
-- 根据当前 Mod 的实际文件准备发布目录，文件选择由 Agent 判断；不要求游戏适配器或固定文件清单。发布中间文件与记录放在当前 Mod 内，例如 `.workshop/`。
-- 将本 `SKILL.md` 所在目录记为技能目录。按 `bundle.json` 选择其中可用的平台二进制，始终用绝对路径调用；不依赖 cwd、全局 PATH 或本机开发仓库。原生动态库须保留在可执行文件旁边。平台缺失时说明缺哪个包，不用旧版 CLI 顶替。
-- macOS 可执行路径为 `bin/macos-universal/workshop`（平台专用包也可能为 `macos-arm64`）；Windows 为 `bin/windows-x64/workshop.exe`。命令语法见 [CLI 操作参考](references/cli.md)。技能目录只保存技能和工具，不保存玩家数据。
+- Read `game.steamAppId` from the current repository's root `mod-repo.json`. Report a missing value instead of guessing.
+- Work in the current session's Mod folder, `your_mods/<folder name>/`. Locate or ask for the current Mod if it is unclear; do not switch to another Mod implicitly.
+- Compilation and in-game verification belong to the existing creation workflow. Use the already verified results for publishing.
+- Select the publishing files from the actual Mod content. No game adapter or fixed packing list is required. Keep staging files and publishing records inside the current Mod, for example under `.workshop/`.
+- Read `bundle.json` to select an available native binary. Invoke its absolute path; do not depend on the shell cwd, global PATH, or a developer checkout. Keep the native Steam library beside the executable. If the platform is missing, report the missing package instead of substituting an older CLI.
+- macOS uses `bin/macos-universal/workshop` (or `macos-arm64` in an architecture-specific package); Windows uses `bin/windows-x64/workshop.exe`. See the [CLI reference](references/cli.md). Keep player data outside the installed skill folder.
 
-## 发布流程
+## Publishing workflow
 
-1. 确定目标：区分新建与更新。更新使用用户指定或当前 Mod 已记录的 Workshop ID；只有 ID 存在不能证明归属，先查询目标游戏与账号可见的实际条目。无法确定更新目标时不自动新建。
-2. 准备展示内容：标题、描述、封面和可选画廊。处理图片时读 [图片规范](references/images.md)；需要多语言时读 [本地化](references/localization.md)。这些内容来自当前 Mod 和玩家要求，不添加未经要求的宣传或发布声明。
-3. 准备上传目录，并用 CLI 的 `files` 检查实际上传清单。它会应用忽略规则，编译产物可能因此被遗漏。清单应与本次选择一致；不要上传整个游戏仓库。
-4. 执行创建或更新。新建未指定可见性时使用 private 并如实告知；明确要求公开时直接使用 public。更新未指定时保留原可见性。用户已明确要求该次发布或更新时，不重复确认。
-5. 保存 CLI 返回的 Workshop ID 和 `workshop.toml`，后续更新复用同一条目。将记录保留在当前 Mod 内，且与运行时 Mod 身份中的 ID 保持一致（该格式由当前 Mod 决定）。超时或结果未知时先查询并核对，不盲目重试创建或追加画廊。
-6. 回读：标题与完整描述按语言分别核对；封面核对原图 URL，画廊核对数量、文件名和加载结果。返回 Workshop 链接与实际验证范围。详细结果与失败处理见 [发布规则](references/publishing.md)。
+1. Distinguish creation from updating. For an update, use the user-specified ID or the current Mod's recorded Workshop ID. Query the actual target to check its game and the account's access; a local ID alone does not establish ownership. Do not create a new item when an update target is unclear.
+2. Prepare the title, description, cover, and optional gallery from the Mod and the player's request. Read [image rules](references/images.md) when handling images and [localization rules](references/localization.md) for multiple languages. Do not add unrequested promotion or release claims.
+3. Prepare the upload directory and run `files` to inspect the actual file list. Ignore rules can omit compiled artifacts. Make the list match the intended selection; do not upload the entire game repository.
+4. Create or update. If creation visibility is unspecified, use private and report that choice. Honor an explicit request for public publishing directly. Preserve visibility on updates unless instructed otherwise. Do not request another confirmation for an already authorized publishing action.
+5. Save the returned Workshop ID and `workshop.toml` inside the current Mod. Reuse the same item for later updates. Keep any runtime Mod identity field consistent with that ID when the Mod format has one. After an uncertain result, query and reconcile before retrying creation or gallery append.
+6. Read back each localized title and full description. Check the cover URL and gallery count, filenames, and image loading. Return the Workshop link and the actual verification scope. See [publishing and failure handling](references/publishing.md).
 
-分享到我们的社区属于独立动作。只有玩家要求时，才接续使用可用的 community-share 技能。
+Sharing to the community is a separate action. Continue with an available community-share skill only when the player requests it.

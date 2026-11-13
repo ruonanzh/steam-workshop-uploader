@@ -1,17 +1,17 @@
-# 发布结果与连接问题
+# Publishing results and connection failures
 
-本技能使用本机 Steam 客户端会话，不通过 SteamCMD 再登录。Steam 必须运行并处于在线登录状态。用户还需具备游戏许可和对应条目的修改权限。登录、账号限制与发布权限是不同错误，不能统称“请重新登录”。
+This skill reuses the local Steam client session. Steam must be running, online, and signed in. The account needs the game's license and permission to modify the target item. Authentication failures, account restrictions, and publishing permissions are different errors; do not present every failure as a request to sign in again.
 
-同一 Mod 的更新复用同一 Workshop ID。将 ID、App ID、发布账号可核对的标识、选择的发布目录和最近结果保留在当前 Mod 内。用户指定新条目或现有目标时以本次意图为准；本地记录冲突时先核对，不自动覆盖另一条目。
+Reuse the same Workshop ID for updates to a Mod. Keep its ID, App ID, a verifiable publishing-account identifier, publishing directory, and latest result inside that Mod. Honor a newly specified target or explicit creation request. Reconcile conflicting records before modifying an item.
 
-可见性值：private、friends-only、unlisted、public。用户明确要求公开已授权该次操作；未明确时新建默认 private，更新保留已有状态。语言文本用 set-text 修改，不顺带改变全局可见性。需要公开时，可先完成所需语言及展示内容，再执行 public 更新。
+Visibility values are private, friends-only, unlisted, and public. An explicit request to publish publicly authorizes that action without another confirmation. For unspecified visibility, create privately and preserve existing visibility during updates. Use set-text for language changes without changing global visibility. Complete the requested localizations and presentation before a final public update when appropriate.
 
-连接国内网络时按阶段定位：SDK 初始化、条目查询、创建、内容上传、图片上传、最终提交、社区网页访问。网页打不开不等于 Steam 上传失败；能查条目也不等于能上传内容。沿用当前 Steam 网络环境，不把 HTTP_PROXY、Git 代理或浏览器代理视为覆盖 Steam 全链路的证明。说明实际失败阶段与可操作的下一步，不自动改变系统代理或要求反复输入密码。
+For mainland China network failures, identify the failing stage: SDK initialization, query, creation, content upload, preview upload, final submission, or community page access. A browser failure does not prove the upload failed, and a successful query does not prove uploads work. Use the existing Steam network environment. HTTP_PROXY, Git proxies, and browser proxies do not demonstrate coverage of Steam's full communication path. Report the actual stage and actionable next step; do not automatically change system proxies or repeatedly request passwords.
 
-查询失败可有限重试。创建、追加画廊或提交超时后，先查询已有 ID、workshop.toml、画廊文件名及实际文本；无法确认时保留记录并报告结果未知，不盲目重放。CLI 中部分通用创建/更新等待尚无总时限，应由宿主执行工具提供有限等待、日志读取与取消；停止本地进程不代表撤销远端操作。
+Read-only failures may receive bounded retries. After an uncertain creation, submission, or gallery append, check the ID, workshop.toml, gallery filenames, and actual text before replaying anything. Preserve records and report an unknown result when it cannot be reconciled. Some generic create/update waits lack an overall deadline; use the host execution tool's bounded waits, logs, and cancellation. Stopping a local process does not roll back the remote operation.
 
-`needs_workshop_agreement=true` 表示玩家需在 Steam 中处理条款。不要代替玩家宣称已接受。公开状态要回查；需要确认对外可见时，可用未登录查询或网页检查。
+needs_workshop_agreement=true requires the player to handle terms in Steam. Do not claim the player has accepted them. Read back visibility; use an unauthenticated query or browser check when public availability matters.
 
-本机实测中，独立 SDK 进程没有启动游戏程序，但 Steam 会将对应 App ID 标记为运行中并进行云同步检查。游戏本来正在运行时，不为上传而关闭或重启它。Steam 登录令牌、密码、Steam Guard、账号配置不进入技能包或发布目录。
+In local tests, independent SDK processes did not launch the game executable, but Steam marked the App ID as running and performed cloud-sync checks. If the player already has the game open, do not close or restart it just for publishing. Keep Steam credentials, Guard codes, tokens, and account configuration out of both the skill package and upload directory.
 
-macOS 上传、更新、三语字段与画廊已实测。Windows、Intel Mac 与不同国内网络的实机结果应分别报告，不把编译通过或 Linux/路径模拟当作对应平台已验收。
+Publishing, updating, localized text, and galleries have been tested on macOS Apple Silicon. Report Windows, Intel Mac, and different mainland China network results separately. Compilation or simulated paths do not establish native platform validation.
