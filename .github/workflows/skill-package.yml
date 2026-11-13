@@ -1,0 +1,59 @@
+name: Build portable Workshop skill
+on:
+  workflow_dispatch:
+  push:
+    tags: ['skill-*']
+permissions:
+  contents: read
+jobs:
+  package:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            platform: macos-universal
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform: windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Test and build
+        shell: bash
+        run: |
+          cargo test --locked --workspace
+          cargo build --locked --release --target '${{ matrix.target }}'
+      - name: Build universal Mac executable
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          rustup target add x86_64-apple-darwin
+          cargo build --locked --release --target x86_64-apple-darwin
+          mkdir -p target/skill-native
+          lipo -create target/aarch64-apple-darwin/release/workshop target/x86_64-apple-darwin/release/workshop -output target/skill-native/workshop
+      - name: Package native skill
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+          target = '${{ matrix.target }}'
+          platform = '${{ matrix.platform }}'
+          windows = platform == 'windows-x64'
+          binary = Path('target') / target / 'release' / ('workshop.exe' if windows else 'workshop')
+          if not windows:
+              binary = Path('target/skill-native/workshop')
+          name = 'steam_api64.dll' if windows else 'libsteam_api.dylib'
+          libraries = list((Path('target') / target / 'release/build').glob('steamworks-sys-*/out/' + name))
+          assert len(libraries) == 1, libraries
+          subprocess.run(['python', 'tools/package_skill.py', '--platform', platform, '--binary', str(binary), '--steam-library', str(libraries[0]), '--output', 'dist'], check=True)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: steam-workshop-${{ matrix.platform }}
+          path: dist/*.zip

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Steam Workshop"
+  short_description: "发布已验证的 Mod，管理封面、画廊及各语言标题和描述"
+  default_prompt: "使用 $steam-workshop 发布或更新当前 Mod 的 Steam Workshop 条目。"
