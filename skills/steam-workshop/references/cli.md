@@ -2,6 +2,8 @@
 
 下文 `<CLI>` 代表技能目录中当前平台可执行文件的绝对路径，`<CONTENT>` 是当前 Mod 内准备好的发布目录。参数值使用宿主 shell 的正确引用；含空格或中文的路径必须引用。
 
+使用宿主已有的命令执行工具运行。Pi Agent 读取技能后可直接通过 `bash` 调用原生程序；其他 Agent 使用其等效执行工具。不要把 `<CLI>` 当作已注册的工具名，也不要假定存在名为 SKILL_DIR 的环境变量；根据本次加载的 SKILL.md 绝对路径确定实际位置。
+
 macOS/Bash：`"<技能绝对目录>/bin/macos-universal/workshop" --help`
 
 Windows/PowerShell：`& "<技能绝对目录>/bin/windows-x64/workshop.exe" --help`

@@ -7,6 +7,14 @@ description: 将当前 Mod 上传到 Steam Workshop，或更新已有条目的�
 
 使用本目录随附的 Rust CLI，复用本机已登录的 Steam。玩家须持有相应游戏和发布权限；无需 API Key，也不向 Agent 提供密码或 Steam Guard 验证码。连接失败时让玩家在官方 Steam 客户端检查登录，再按返回错误处理。
 
+## 宿主与执行方式
+
+这是采用标准 `SKILL.md` 格式的通用 Agent 技能。由宿主根据 name 和 description 发现并加载。Pi 项目可将整个目录安装到 `<游戏仓库>/.pi/skills/steam-workshop/`，再由宿主刷新技能发现或重开会话。
+
+Agent 使用宿主的文件读取工具加载本文件和参考文件，再通过已有的命令执行工具调用 CLI。Pi 中通常使用 `read` 和 `bash`；Windows 宿主提供 PowerShell 时，也可按参考中的 PowerShell 语法执行。无需额外的技能专用工具注册。
+
+当前游戏仓库由会话工作区确定，不是本技能的安装目录。CLI 和参考文件相对技能目录定位；`mod-repo.json` 和 `your_mods/` 相对当前游戏仓库定位。
+
 ## 工作空间与工具
 
 - 从当前游戏仓库根目录的 `mod-repo.json` 读取 `game.steamAppId`。缺失时说明缺项，不猜测 App ID。
