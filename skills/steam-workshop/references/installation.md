@@ -61,9 +61,9 @@ Copy-Item -LiteralPath $skillSource -Destination $destination -Recurse
 
 The repository needs only its existing root mod-repo.json with game.steamAppId. Confirm that this is the real game ID; do not invent new adapter fields or use the skill's directory as the game root.
 
-The player's current Mod is `your_mods/<folder name>/`. No per-game packing manifest is required by this skill. Preserve the current session's Mod binding. Publishing metadata and temporary files belong inside that Mod, not the installed skill. No passwords, API keys, Steam configuration, player Mods, test screenshots, or publishing records belong in the copied package.
+The player's current Mod is `your_mods/<folder name>/`. No per-game packing manifest is required by this skill. Preserve the current session's Mod binding. Publishing data belongs under that Mod's `.preview/steam-workshop/`, with the stable item record at `content/workshop.toml`, not in the installed skill. Keep these records when cleaning preview images. Confirm the game's installer excludes `.preview/`; Duckov already does, but other Mod repositories must be checked rather than assumed. No passwords, API keys, Steam configuration, player Mods, test screenshots, or publishing records belong in the copied package.
 
-Do not add special IPC, MCP tools, model configuration, or host-specific agent metadata. The host's ordinary file-reading and command-execution tools are sufficient. Another Agent runtime can use the same standard SKILL.md directory in its own discovery location.
+No repository-specific IPC, MCP tool, model configuration, or host-specific agent metadata is needed. pi-desktop supplies the optional global `steam_workshop_prepare` tool; copying this skill into another host does not register that tool. The host's ordinary file-reading and command-execution tools are sufficient. Another Agent runtime can use the same standard SKILL.md directory in its own discovery location.
 
 ## Validate installation
 
