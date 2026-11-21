@@ -12,7 +12,7 @@ In pi-desktop, call `steam_workshop_prepare` with `{}` first and use its returne
 
 ```text
 <CLI> files <CONTENT>
-<CLI> --no-prompt create --app-id <APP_ID> --content <CONTENT> --language english --title "Title" --description-file <ABSOLUTE_PATH/en.txt> --visibility private --preview <ABSOLUTE_COVER_PATH>
+<CLI> --no-prompt create --app-id <APP_ID> --content <CONTENT> --language english --title "Title" --description-file <ABSOLUTE_PATH/en.txt> --visibility private
 <CLI> --no-prompt update --content <CONTENT> --language english --description-file <ABSOLUTE_PATH/en.txt>
 <CLI> --no-prompt update --content <CONTENT> --language english --no-content-update --preview <ABSOLUTE_COVER_PATH>
 <CLI> get-text --app-id <APP_ID> --item-id <ITEM_ID> --language english
@@ -20,6 +20,8 @@ In pi-desktop, call `steam_workshop_prepare` with `{}` first and use its returne
 <CLI> get-previews --app-id <APP_ID> --item-id <ITEM_ID>
 <CLI> add-preview --app-id <APP_ID> --item-id <ITEM_ID> --file <ABSOLUTE_SCREENSHOT_PATH>
 ```
+
+`create` without `--preview` uses the embedded 1024 x 1024 Mod Agent logo on pure black. This default works without terminal interaction and does not depend on the working directory or writable skill files. To supply a custom cover, add `--preview <ABSOLUTE_COVER_PATH>`. `update` without `--preview` preserves the current cover. The cover-only update example above replaces the cover on the same item without uploading content again.
 
 create saves its returned ID in `<CONTENT>/workshop.toml`. update reads app_id and item_id from that file. To establish a local record for an existing item:
 

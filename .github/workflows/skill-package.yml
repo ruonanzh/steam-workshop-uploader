@@ -2,7 +2,7 @@ name: Build portable Workshop skill
 on:
   workflow_dispatch:
   push:
-    tags: ['skill-*']
+    tags: ["skill-*"]
 permissions:
   contents: read
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -29,6 +29,7 @@ jobs:
         shell: bash
         run: |
           cargo test --locked --workspace
+          python -m unittest discover -s tools -p test_package_skill.py
           cargo build --locked --release --target '${{ matrix.target }}'
       - name: Build universal Mac executable
         if: runner.os == 'macOS'
@@ -53,6 +54,9 @@ jobs:
           libraries = list((Path('target') / target / 'release/build').glob('steamworks-sys-*/out/' + name))
           assert len(libraries) == 1, libraries
           subprocess.run(['python', 'tools/package_skill.py', '--platform', platform, '--binary', str(binary), '--steam-library', str(libraries[0]), '--output', 'dist'], check=True)
+      - name: Verify packaged native CLI without Steam
+        shell: bash
+        run: python tools/smoke_skill.py dist/steam-workshop --platform '${{ matrix.platform }}'
       - uses: actions/upload-artifact@v4
         with:
           name: steam-workshop-${{ matrix.platform }}

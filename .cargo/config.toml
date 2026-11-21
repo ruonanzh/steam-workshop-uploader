@@ -1,2 +1,6 @@
 [target.'cfg(unix)']
 rustflags = ["-C", "link-arg=-Wl,-rpath,$ORIGIN"]
+
+# Players need only the bundled Steam API DLL, not a separate VC++ runtime.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

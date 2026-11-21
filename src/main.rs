@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod cover;
 mod defines;
 pub mod markdown;
 mod media;
@@ -76,7 +77,9 @@ fn main() -> eyre::Result<()> {
 }
 
 fn run() -> eyre::Result<()> {
-    let cli = Cli::parse();
+    let mut cli = Cli::parse();
+    // Retain the temporary fallback until the create submission has completed.
+    let _default_cover = cover::prepare_default_cover(&mut cli.command)?;
     let config = ConfigWithPath::<AppConfig>::load()?;
 
     fn inquire_content_path() -> eyre::Result<PathBuf> {

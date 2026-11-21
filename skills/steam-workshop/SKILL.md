@@ -32,6 +32,12 @@ Other Pi hosts can use this skill without that product tool. Resolve the current
 - Read `bundle.json` to select an available native binary. Invoke its absolute path; do not depend on the shell cwd, global PATH, or a developer checkout. Keep the native Steam library beside the executable. If the platform is missing, report the missing package instead of substituting an older CLI.
 - macOS uses `bin/macos-universal/workshop` (or `macos-arm64` in an architecture-specific package); Windows uses `bin/windows-x64/workshop.exe`. See the [CLI reference](references/cli.md). Keep player data outside the installed skill folder.
 
+## Default cover
+
+When creating an item and the player has not provided a cover, use `assets/default-cover.png`: the 1024 x 1024 green Mod Agent logo on a solid black background. Do not ask the player to provide or confirm a cover. Omit `--preview`; the CLI applies the same embedded image automatically, including with `--no-prompt`.
+
+When the player provides a cover, pass its absolute path with `--preview`. If an explicit image path is invalid, correct the path instead of silently substituting the default. On updates without a replacement cover, omit `--preview` to preserve the published cover. The cover can be replaced later on the same item with `update --no-content-update --preview <ABSOLUTE_COVER_PATH>`; read the existing item record first.
+
 ## Publishing workflow
 
 1. Distinguish creation from updating. Read `.preview/steam-workshop/content/workshop.toml` and `.preview/steam-workshop/publish-record.md` first. For an update, use the user-specified ID or the current Mod's recorded Workshop ID. If only a legacy record exists, reconcile its App ID and item ID before migrating its publishing data into the fixed directory. Preserve originals on conflicts; do not merge different item IDs. A missing record means unknown publishing history, not proof that the Mod was never published. An item ID proves creation, not successful content submission. Query the actual target to check its game and metadata. Public readability and a local ID do not establish ownership; this CLI does not expose an ownership preflight. Rely on Steam's permission result during the requested update and report permission failures without creating a replacement item. Do not create a new item when an update target is unclear.

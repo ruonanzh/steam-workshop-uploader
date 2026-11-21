@@ -211,7 +211,8 @@ pub struct WorkshopItemArgs {
     /// Language code for title and description.
     #[arg(short = 'l', long, value_name = "LANG")]
     pub language: Option<Language>,
-    /// Suggested formats include JPG, PNG and GIF (max 1 MiB).
+    /// Cover image: JPG, PNG or GIF (max 1 MiB). Create defaults to the built-in
+    /// 1024x1024 Mod Agent logo on black. Update without --preview preserves the current cover.
     #[arg(
         long = "preview",
         value_name = "FILE",

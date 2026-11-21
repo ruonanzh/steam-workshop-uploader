@@ -2,11 +2,13 @@
 
 Treat the primary cover, gallery, and inline description images as separate resources. Do not automatically apply a new screenshot to every placement.
 
-| Resource | Recommended production size | Verification |
-| --- | --- | --- |
-| Primary cover | Default 1024 x 1024; 512 x 512 can suit simple artwork | Recognizable at about 215 x 215; prominent subject, little small text, margins around logos |
+For a new item without a player-provided cover, use the bundled `assets/default-cover.png` (relative to SKILL.md). This is an opaque 1024 x 1024 green Mod Agent logo on pure black. Do not ask for an image or delay publishing to create one. The CLI embeds the same image and uses it when `create` omits `--preview`. Explicit covers take priority. `update` without `--preview` preserves the existing cover; a later cover-only update uses `--no-content-update --preview` on the same item. The default is a primary cover, not a gallery screenshot or inline illustration.
+
+| Resource           | Recommended production size                                                                               | Verification                                                                                            |
+| ------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Primary cover      | Default 1024 x 1024; 512 x 512 can suit simple artwork                                                    | Recognizable at about 215 x 215; prominent subject, little small text, margins around logos             |
 | Gallery screenshot | Prefer 1920 x 1080 for new material; use 1280 x 720 when useful; preserve existing screenshot proportions | Check the roughly 16:9 player and 116 x 65 thumbnails; do not stretch or casually crop characters or UI |
-| Inline image | Suggested width 1260 px, content-dependent height; do not upscale adequate existing material | Check text at about 630 px display width; split long explanations into several images |
+| Inline image       | Suggested width 1260 px, content-dependent height; do not upscale adequate existing material              | Check text at about 630 px display width; split long explanations into several images                   |
 
 These dimensions are project recommendations, not Valve requirements. Desktop measurements on 2026-11-13 found roughly 215 x 215 Duckov listing cards, a 637 x 358 gallery request, and a 630 px CSS maximum for images in the reference item's description. Responsive layouts and Steam updates can change display sizes. 256 x 256 is not a universal Steam upload requirement; treat game-local preview.png requirements separately.
 

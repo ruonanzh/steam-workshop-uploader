@@ -17,22 +17,33 @@ PLATFORMS = {
 }
 
 
-def package(platform, binary, library, output):
-    binary, library, output = binary.resolve(), library.resolve(), output.resolve()
-    expected_binary, expected_library = PLATFORMS[platform]
-    if not binary.is_file() or not library.is_file():
-        raise ValueError("Both native executable and Steam library are required")
+def package(platform, binary, library, output, additional_runtimes=()):
+    output = output.resolve()
+    runtimes = {}
+    for name, executable, steam_library in [(platform, binary, library), *additional_runtimes]:
+        if name not in PLATFORMS or name in runtimes:
+            raise ValueError(f"Unknown or duplicate platform: {name}")
+        executable, steam_library = Path(executable).resolve(), Path(steam_library).resolve()
+        if not executable.is_file() or not steam_library.is_file():
+            raise ValueError(f"Both native executable and Steam library are required for {name}")
+        runtimes[name] = (executable, steam_library)
     destination = output / "steam-workshop"
     if destination.exists():
         raise ValueError(f"Output already exists: {destination}; use a new output directory")
-    shutil.copytree(ROOT / "skills/steam-workshop", destination)
-    runtime = destination / "bin" / platform
-    runtime.mkdir(parents=True)
-    shutil.copy2(binary, runtime / expected_binary)
-    shutil.copy2(library, runtime / expected_library)
-    if platform != "windows-x64":
-        (runtime / expected_binary).chmod(0o755)
-    shutil.copy2(destination / "config.toml", runtime / "config.toml")
+    shutil.copytree(ROOT / "skills/steam-workshop", destination,
+                    ignore=shutil.ignore_patterns(".DS_Store", "__pycache__", "*.pyc"))
+    platforms = {}
+    for name, (executable, steam_library) in runtimes.items():
+        expected_binary, expected_library = PLATFORMS[name]
+        runtime = destination / "bin" / name
+        runtime.mkdir(parents=True)
+        shutil.copy2(executable, runtime / expected_binary)
+        shutil.copy2(steam_library, runtime / expected_library)
+        if name != "windows-x64":
+            (runtime / expected_binary).chmod(0o755)
+        shutil.copy2(destination / "config.toml", runtime / "config.toml")
+        platforms[name] = {"executable": f"bin/{name}/{expected_binary}",
+                           "steam_library": f"bin/{name}/{expected_library}"}
     licenses = destination / "LICENSES"
     licenses.mkdir()
     shutil.copy2(ROOT / "LICENSE", licenses / "workshop-GPL-3.0.txt")
@@ -47,7 +58,7 @@ def package(platform, binary, library, output):
     source.mkdir()
     for name in ["src", "plugins", ".cargo", "tools", "skills"]:
         shutil.copytree(ROOT / name, source / name,
-                        ignore=shutil.ignore_patterns("target", "__pycache__", "*.pyc", "bin"))
+                        ignore=shutil.ignore_patterns("target", "__pycache__", "*.pyc", "bin", ".DS_Store"))
     for name in ["Cargo.toml", "Cargo.lock", "LICENSE", "README.md"]:
         shutil.copy2(ROOT / name, source / name)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -56,22 +67,24 @@ def package(platform, binary, library, output):
         "name": "steam-workshop",
         "version": (destination / "VERSION").read_text().strip(),
         "source_revision": revision,
+        "source_modified": bool(subprocess.check_output(
+            ["git", "status", "--porcelain"], cwd=ROOT, text=True).strip()),
         "upstream": "https://github.com/nozwock/steam-workshop-uploader",
-        "platforms": {platform: {"executable": f"bin/{platform}/{expected_binary}",
-                                  "steam_library": f"bin/{platform}/{expected_library}"}},
+        "platforms": platforms,
         "files": {},
     }
     for path in sorted(destination.rglob("*")):
         if path.is_file():
             manifest["files"][path.relative_to(destination).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
     (destination / "bundle.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    archive = output / f"steam-workshop-{manifest['version']}-{platform}.zip"
+    archive_platform = platform if len(platforms) == 1 else "multi-platform"
+    archive = output / f"steam-workshop-{manifest['version']}-{archive_platform}.zip"
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
         for path in sorted(destination.rglob("*")):
             if path.is_file():
                 bundle.write(path, path.relative_to(output))
     print(json.dumps({"directory": str(destination), "archive": str(archive),
-                      "platform": platform, "files": len(manifest["files"])}, indent=2))
+                      "platforms": list(platforms), "files": len(manifest["files"])}, indent=2))
     return destination, archive
 
 
@@ -81,5 +94,8 @@ if __name__ == "__main__":
     parser.add_argument("--binary", type=Path, required=True)
     parser.add_argument("--steam-library", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--additional-runtime", nargs=3, action="append", default=[],
+                        metavar=("PLATFORM", "EXECUTABLE", "STEAM_LIBRARY"),
+                        help="Include another native runtime in the same portable skill package")
     args = parser.parse_args()
-    package(args.platform, args.binary, args.steam_library, args.output)
+    package(args.platform, args.binary, args.steam_library, args.output, args.additional_runtime)
